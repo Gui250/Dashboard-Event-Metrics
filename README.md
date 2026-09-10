@@ -1,36 +1,29 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Painel de conversão — Fazendinha Resort Privé
 
-## Getting Started
+Dashboard em Next.js + Recharts com duas seções:
 
-First, run the development server:
+- **Vendas clientes** — crescimento semanal de clientes, faturamento e ticket médio (2024 / 2025 / 2026), com fechamento do mês.
+- **Conversão de clientes** — fluxo diário por clube (tarde e noite) frente à meta, média mensal e comparação entre os dois clubes.
+
+Cada seção tem o próprio botão **Baixar template** (.xlsx) e aceita o upload da planilha
+preenchida — os gráficos são gerados na hora, no navegador. Nenhum dado sai da máquina.
+
+## Rodando
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # http://localhost:3000
+npm run check    # valida os leitores de planilha contra arquivos reais
+npm run build    # produção
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Estrutura da planilha
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**Vendas** — uma aba por semana (`SEMANA 1`…`SEMANA 5`) e uma de `FECHAMENTO`.
+A célula `REFERENCIA` ancora o bloco; nas linhas abaixo dela vêm `TOTAL CLIENTES`,
+`FATURAMENTO` e `TICKET MÉDIO`, com 2024, 2025 e 2026 nas colunas seguintes.
+As variações são recalculadas pelo painel.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Clientes** — uma aba por mês. A linha `META CLIENTES` marca as duas colunas de clube;
+abaixo dela, cada linha traz o dia do mês e os clientes daquele dia. A aba `ACUMULADO`
+é ignorada: as médias saem dos dias.

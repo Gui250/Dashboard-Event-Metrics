@@ -1,26 +1,110 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-ink: #120a0c;
+  --color-ink-2: #1a0f12;
+  --color-surface: #201317;
+  --color-surface-2: #2a191e;
+  --color-line: #3d252b;
+  --color-line-soft: #2e1c21;
+  --color-gold: #c69630;
+  --color-gold-soft: #e3c179;
+  --color-gold-dim: #8a6a25;
+  --color-wine: #720006;
+  --color-wine-lit: #b02f45;
+  --color-wine-soft: #d4677a;
+  --color-cream: #f2e6d6;
+  --color-muted: #a58a7d;
+  --color-taupe: #7c6a63;
+
+  --font-display: var(--font-display-src), "Iowan Old Style", Georgia, serif;
+  --font-sans: var(--font-sans-src), ui-sans-serif, system-ui, sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    background: var(--color-ink);
+    overflow-x: hidden;
+  }
+  body {
+    background:
+      radial-gradient(120% 80% at 82% -10%, rgba(198, 150, 48, 0.13), transparent 62%),
+      radial-gradient(90% 70% at 0% 0%, rgba(114, 0, 6, 0.45), transparent 60%),
+      var(--color-ink);
+    color: var(--color-cream);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  ::selection {
+    background: var(--color-gold);
+    color: var(--color-ink);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 3px;
+    border-radius: 2px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@utility eyebrow {
+  font-size: 0.6875rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+  font-weight: 500;
+}
+
+/* Colunas de número que precisam alinhar: tabelas e eixos. */
+@utility num {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Números grandes e isolados: algarismos proporcionais, senão "121" fica solto. */
+@utility fig {
+  font-family: var(--font-display);
+  font-variant-numeric: proportional-nums;
+  letter-spacing: -0.01em;
+}
+
+@utility hairline {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-gold-dim) 12%,
+    var(--color-gold-dim) 88%,
+    transparent
+  );
+  height: 1px;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@utility rise {
+  animation: rise 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+.recharts-surface:focus,
+.recharts-wrapper:focus {
+  outline: none;
 }
