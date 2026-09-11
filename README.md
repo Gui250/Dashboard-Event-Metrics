@@ -26,8 +26,9 @@ navegador de quem as carrega). Configure no `.env.local` — e nas variáveis de
 
 ```bash
 SUPABASE_URL=https://evkivockfdvhygqguxeo.supabase.co
-SUPABASE_SECRET_KEY=sb_secret_...          # Supabase → Project Settings → API Keys (só no servidor)
-SESSAO_SEGREDO=$(openssl rand -base64 32)  # 32+ caracteres; trocar derruba todas as sessões
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_...  # Supabase → Project Settings → API Keys (pública)
+SUPABASE_CHAVE_SERVIDOR=...                  # segredo; o hash dela fica em privado.chave_servidor
+SESSAO_SEGREDO=$(openssl rand -base64 32)    # 32+ caracteres; trocar derruba todas as sessões
 ```
 
 Os usuários ficam na tabela `usuarios` do Supabase (projeto `dashboard-fazendinha`), com a
@@ -44,8 +45,12 @@ on conflict (usuario) do update set senha_hash = excluded.senha_hash;
 delete from usuarios where usuario = 'ana';  -- remover acesso
 ```
 
-A tabela não é exposta pela API: o login chama a função `confere_login`, que só o
-`service_role` executa e que devolve apenas verdadeiro/falso.
+A tabela não é exposta pela API. Login e cadastro chamam as funções `confere_login` e
+`cria_usuario`, que recusam qualquer chamada sem a `SUPABASE_CHAVE_SERVIDOR` — a chave
+publishable sozinha não faz nada. O banco guarda só o sha256 dela, no schema `privado`
+(fora da API). Para trocá-la, gere uma nova, rode
+`insert into privado.chave_servidor values (extensions.digest('<nova>', 'sha256'));`,
+atualize a variável na Vercel e depois apague o hash antigo.
 
 A sessão é um cookie `httpOnly` assinado (HMAC-SHA256), válido por 12 horas. Não há
 limite de tentativas: se o painel ficar exposto na internet, ponha rate limit na borda.

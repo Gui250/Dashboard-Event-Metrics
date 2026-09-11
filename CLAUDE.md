@@ -26,9 +26,10 @@ planilhas (`useState` por seção), lidas no navegador via SheetJS. O único có
 o login: `proxy.ts` manda toda rota sem cookie válido para `/cadastro` (público, com link
 para `/login`) e `app/login/actions.ts` cria/apaga a sessão (`lib/sessao.ts`, HMAC com
 `SESSAO_SEGREDO`). Os usuários ficam na tabela `usuarios` do Supabase; `entrar` e
-`cadastrar` chamam as RPCs `confere_login` e `cria_usuario` (bcrypt no banco, só
-`service_role`; `cria_usuario` nunca sobrescreve) por `fetch` com `SUPABASE_SECRET_KEY` —
-sem `@supabase/supabase-js`. Schema em `supabase/migrations/`. Filtros
+`cadastrar` chamam as RPCs `confere_login` e `cria_usuario` (bcrypt no banco;
+`cria_usuario` nunca sobrescreve) por `fetch` com a chave publishable — sem
+`@supabase/supabase-js`. Cada RPC exige `p_chave` = `SUPABASE_CHAVE_SERVIDOR`, conferida por
+sha256 contra `privado.chave_servidor`; é o que substitui a secret key do Supabase. Schema em `supabase/migrations/`. Filtros
 vivem no estado de cada seção; observações digitadas no painel, no `localStorage`
 (`useObservacoes` em `components/ui.tsx`).
 

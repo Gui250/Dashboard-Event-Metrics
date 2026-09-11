@@ -5,19 +5,27 @@ import { redirect } from "next/navigation";
 import { assinar, COOKIE, DURACAO_S } from "@/lib/sessao";
 
 const SEM_CONFIG =
-  "Login não configurado: defina SUPABASE_URL, SUPABASE_SECRET_KEY e SESSAO_SEGREDO (32+ caracteres).";
+  "Login não configurado: defina SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SUPABASE_CHAVE_SERVIDOR e SESSAO_SEGREDO (32+ caracteres).";
 
 function configurado() {
-  const { SUPABASE_URL, SUPABASE_SECRET_KEY, SESSAO_SEGREDO } = process.env;
-  return !!SUPABASE_URL && !!SUPABASE_SECRET_KEY && (SESSAO_SEGREDO?.length ?? 0) >= 32;
+  const { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SUPABASE_CHAVE_SERVIDOR, SESSAO_SEGREDO } = process.env;
+  return (
+    !!SUPABASE_URL &&
+    !!SUPABASE_PUBLISHABLE_KEY &&
+    !!SUPABASE_CHAVE_SERVIDOR &&
+    (SESSAO_SEGREDO?.length ?? 0) >= 32
+  );
 }
 
-/** Chama uma função do banco que só o service_role executa; `undefined` = o banco não respondeu. */
+/**
+ * Chama uma RPC do banco; `undefined` = o banco não respondeu ou recusou.
+ * A chave publishable sozinha não basta: cada RPC exige `p_chave`, cujo hash fica em `privado`.
+ */
 async function rpc(nome: string, args: object): Promise<unknown> {
   const res = await fetch(`${process.env.SUPABASE_URL}/rest/v1/rpc/${nome}`, {
     method: "POST",
-    headers: { apikey: process.env.SUPABASE_SECRET_KEY!, "Content-Type": "application/json" },
-    body: JSON.stringify(args),
+    headers: { apikey: process.env.SUPABASE_PUBLISHABLE_KEY!, "Content-Type": "application/json" },
+    body: JSON.stringify({ p_chave: process.env.SUPABASE_CHAVE_SERVIDOR, ...args }),
     cache: "no-store",
   });
   return res.ok ? res.json() : undefined;
