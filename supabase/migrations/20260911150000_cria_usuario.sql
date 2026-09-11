@@ -1,4 +1,4 @@
--- Só cria: usuário existente não é sobrescrito, então ninguém troca a senha de outro pelo painel.
+-- Só cria: usuário existente não é sobrescrito, então o cadastro aberto não toma a conta de ninguém.
 create function public.cria_usuario(p_usuario text, p_senha text)
 returns boolean
 language sql

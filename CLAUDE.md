@@ -23,13 +23,12 @@ Um caso novo é um `assert` a mais nesse arquivo — não crie suíte separada.
 
 Painel client-side: sem API routes, sem banco. `app/page.tsx` é o único dono do estado das
 planilhas (`useState` por seção), lidas no navegador via SheetJS. O único código de servidor é
-o login: `proxy.ts` barra toda rota sem cookie válido e `app/login/actions.ts` cria/apaga a
-sessão (`lib/sessao.ts`, HMAC com `SESSAO_SEGREDO`). Os usuários ficam na tabela `usuarios`
-do Supabase; o login chama a RPC `confere_login` (bcrypt no banco, só `service_role`) por
-`fetch` com `SUPABASE_SECRET_KEY` — sem `@supabase/supabase-js`. `/cadastro` cria usuários
-pela RPC `cria_usuario` (nunca sobrescreve); a action `cadastrar` confere a sessão por conta
-própria, porque server action é alcançável por POST direto e o proxy deixa `/login` passar.
-Schema em `supabase/migrations/`. Filtros
+o login: `proxy.ts` manda toda rota sem cookie válido para `/cadastro` (público, com link
+para `/login`) e `app/login/actions.ts` cria/apaga a sessão (`lib/sessao.ts`, HMAC com
+`SESSAO_SEGREDO`). Os usuários ficam na tabela `usuarios` do Supabase; `entrar` e
+`cadastrar` chamam as RPCs `confere_login` e `cria_usuario` (bcrypt no banco, só
+`service_role`; `cria_usuario` nunca sobrescreve) por `fetch` com `SUPABASE_SECRET_KEY` —
+sem `@supabase/supabase-js`. Schema em `supabase/migrations/`. Filtros
 vivem no estado de cada seção; observações digitadas no painel, no `localStorage`
 (`useObservacoes` em `components/ui.tsx`).
 

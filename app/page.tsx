@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import * as XLSX from "xlsx";
 import { Fonte } from "@/components/Fonte";
@@ -77,13 +76,7 @@ export default function Painel() {
           <p className="mt-1.5 text-[0.85rem] text-muted">
             {vendas ? vendas.mes.toLowerCase() : "vendas e fluxo de clientes"}
           </p>
-          <form action={sair} className="mt-3 flex justify-end gap-5">
-            <Link
-              href="/cadastro"
-              className="text-[0.78rem] tracking-[0.14em] text-muted uppercase transition-colors hover:text-cream"
-            >
-              Novo usuário
-            </Link>
+          <form action={sair} className="mt-3">
             <button className="text-[0.78rem] tracking-[0.14em] text-muted uppercase transition-colors hover:text-cream">
               Sair
             </button>

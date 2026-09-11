@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { Marca } from "@/components/Marca";
 import { CAMPO } from "@/components/ui";
@@ -53,6 +54,13 @@ export default function Login() {
         >
           {enviando ? "Entrando…" : "Entrar no painel"}
         </button>
+
+        <p className="mt-5 text-center text-[0.85rem] text-muted">
+          Não tem conta?{" "}
+          <Link href="/cadastro" className="text-gold transition-colors hover:text-gold-soft">
+            Criar conta
+          </Link>
+        </p>
       </form>
     </main>
   );

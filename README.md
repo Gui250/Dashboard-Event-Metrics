@@ -19,8 +19,10 @@ npm run build    # produção
 
 ## Login
 
-O painel inteiro fica atrás de login (`proxy.ts` barra toda rota sem sessão válida).
-Configure no `.env.local` — e nas variáveis de ambiente do servidor em produção:
+O painel inteiro fica atrás de login. Quem chega sem sessão cai em `/cadastro`, onde cria
+a conta e já entra, ou segue o link para `/login`. O cadastro é aberto: qualquer pessoa com
+o link cria uma conta (o painel não guarda dados no servidor; as planilhas só existem no
+navegador de quem as carrega). Configure no `.env.local` — e nas variáveis de ambiente do servidor em produção:
 
 ```bash
 SUPABASE_URL=https://evkivockfdvhygqguxeo.supabase.co
@@ -31,8 +33,7 @@ SESSAO_SEGREDO=$(openssl rand -base64 32)  # 32+ caracteres; trocar derruba toda
 Os usuários ficam na tabela `usuarios` do Supabase (projeto `dashboard-fazendinha`), com a
 senha em bcrypt. O schema está em `supabase/migrations/`.
 
-Quem está logado cria novos usuários em **Novo usuário** (`/cadastro`), no topo do painel.
-A tela só cria: um usuário que já existe não é sobrescrito. Para trocar uma senha ou
+O cadastro só cria: um usuário que já existe não é sobrescrito. Para trocar uma senha ou
 remover um acesso, rode no SQL Editor do Supabase:
 
 ```sql
