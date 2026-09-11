@@ -29,8 +29,11 @@ SESSAO_SEGREDO=$(openssl rand -base64 32)  # 32+ caracteres; trocar derruba toda
 ```
 
 Os usuários ficam na tabela `usuarios` do Supabase (projeto `dashboard-fazendinha`), com a
-senha em bcrypt. O schema está em `supabase/migrations/`. Para criar ou trocar uma senha,
-rode no SQL Editor do Supabase:
+senha em bcrypt. O schema está em `supabase/migrations/`.
+
+Quem está logado cria novos usuários em **Novo usuário** (`/cadastro`), no topo do painel.
+A tela só cria: um usuário que já existe não é sobrescrito. Para trocar uma senha ou
+remover um acesso, rode no SQL Editor do Supabase:
 
 ```sql
 insert into usuarios (usuario, senha_hash)

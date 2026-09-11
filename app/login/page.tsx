@@ -2,10 +2,8 @@
 
 import { useActionState } from "react";
 import { Marca } from "@/components/Marca";
+import { CAMPO } from "@/components/ui";
 import { entrar } from "./actions";
-
-const CAMPO =
-  "mt-2 w-full rounded-xl border border-line bg-ink-2/80 px-4 py-3 text-[0.95rem] text-cream outline-none transition-colors focus:border-gold";
 
 export default function Login() {
   const [erro, acao, enviando] = useActionState(entrar, null);

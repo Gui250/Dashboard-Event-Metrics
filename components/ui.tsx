@@ -21,7 +21,11 @@ export const C = {
  * (anos, lotes): o passo mais recente é o mais brilhante.
  * Validada com scripts/validate_palette.js --ordinal --mode dark.
  */
-export const RAMPA_OURO = ["#7d5b1c", "#ab8029", "#dcae4c"];
+/** Campo de texto das telas de login e cadastro. */
+export const CAMPO =
+  "mt-2 w-full rounded-xl border border-line bg-ink-2/80 px-4 py-3 text-[0.95rem] text-cream outline-none transition-colors focus:border-gold";
+
+export const RAMPA_OURO =["#7d5b1c", "#ab8029", "#dcae4c"];
 
 export const CORES_ANO: Record<number, string> = {
   2024: RAMPA_OURO[0],
