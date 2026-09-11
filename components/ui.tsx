@@ -247,16 +247,19 @@ export function Tip({
   label,
   fmt = (v: number) => int(v),
   titulo,
+  nota,
 }: {
   active?: boolean;
   payload?: TipItem[];
   label?: string | number;
   fmt?: (v: number) => string;
   titulo?: (label: string | number) => string;
+  nota?: (label: string | number) => string | null;
 }) {
   if (!active || !payload?.length) return null;
   const itens = payload.filter((p) => p.value !== null && p.value !== undefined);
   if (!itens.length) return null;
+  const texto = nota?.(label ?? "") ?? null;
   return (
     <div className="rounded-2xl border border-line bg-ink-2/95 px-4 py-3 shadow-[0_18px_40px_-18px_rgba(0,0,0,0.9)] backdrop-blur">
       <p className="eyebrow mb-2">{titulo ? titulo(label ?? "") : label}</p>
@@ -273,7 +276,237 @@ export function Tip({
           </li>
         ))}
       </ul>
+      {texto && (
+        <p className="mt-3 max-w-[16rem] border-t border-line/70 pt-2.5 text-[0.8rem] leading-snug text-gold-soft">
+          {texto}
+        </p>
+      )}
     </div>
+  );
+}
+
+/* ---------- observações ---------- */
+
+/** Nota presa a uma categoria do eixo x: "S1", o dia "12", a data "2026-05-12". */
+export type Nota = { chave: string; texto: string };
+
+const OBS = "fazendinha:observacoes";
+
+/**
+ * Observações escritas no painel, por escopo (seção + mês ou evento).
+ * ponytail: ficam no localStorage deste navegador; mover para um backend se a equipe precisar compartilhar.
+ */
+export function useObservacoes(escopo: string) {
+  const [todas, setTodas] = useState<Record<string, Nota[]>>(() =>
+    JSON.parse(localStorage.getItem(OBS) || "{}")
+  );
+  const itens = todas[escopo] ?? [];
+  const salvar = (lista: Nota[]) => {
+    const novo = { ...todas, [escopo]: lista };
+    localStorage.setItem(OBS, JSON.stringify(novo));
+    setTodas(novo);
+  };
+  return {
+    itens,
+    adicionar: (n: Nota) => salvar([...itens, n]),
+    remover: (i: number) => salvar(itens.filter((_, j) => j !== i)),
+  };
+}
+export type Observacoes = ReturnType<typeof useObservacoes>;
+
+/**
+ * Envolve um gráfico cujo clique anota. O mousedown não pode focar o svg: no foco
+ * o Recharts liga a navegação por teclado no primeiro item e o `activeLabel` do
+ * clique passa a ser sempre ele. Tab + setas continuam funcionando.
+ */
+export function Clicavel({ children }: { children: ReactNode }) {
+  return (
+    <div className="cursor-pointer" onMouseDown={(e) => e.preventDefault()}>
+      {children}
+    </div>
+  );
+}
+
+/** Textos de uma categoria do eixo, para o tooltip. */
+export const notaDe = (notas: Nota[], chave: string | number) =>
+  notas
+    .filter((n) => n.chave === String(chave))
+    .map((n) => n.texto)
+    .join(" · ") || null;
+
+/**
+ * Lista de observações (planilha + painel) com o campo para anotar. `alvo` é a
+ * categoria do select; clicar numa barra ou ponto do gráfico o preenche e foca `id`.
+ */
+export function Notas({
+  id,
+  planilha,
+  obs,
+  opcoes,
+  alvo,
+  onAlvo,
+}: {
+  id: string;
+  planilha: Nota[];
+  obs: Observacoes;
+  opcoes: { chave: string; nome: string }[];
+  alvo: string;
+  onAlvo: (chave: string) => void;
+}) {
+  const nome = (chave: string) => opcoes.find((o) => o.chave === chave)?.nome ?? chave;
+  const ordem = (chave: string) => {
+    const i = opcoes.findIndex((o) => o.chave === chave);
+    return i < 0 ? opcoes.length : i;
+  };
+  const itens = [
+    ...planilha.map((n) => ({ ...n, i: -1 })),
+    ...obs.itens.map((n, i) => ({ ...n, i })),
+  ].sort((a, b) => ordem(a.chave) - ordem(b.chave));
+  const valor = opcoes.some((o) => o.chave === alvo) ? alvo : (opcoes[0]?.chave ?? "");
+
+  return (
+    <div className="mt-5 border-t border-line/50 pt-4">
+      <p className="eyebrow">Observações</p>
+      {itens.length > 0 && (
+        <ul className="mt-3 space-y-2">
+          {itens.map((n) => (
+            <li key={`${n.i}-${n.chave}-${n.texto}`} className="group flex items-start gap-3 text-[0.85rem]">
+              <span className="w-24 shrink-0 text-gold-soft">{nome(n.chave)}</span>
+              <span className="min-w-0 flex-1 break-words text-muted">{n.texto}</span>
+              {n.i >= 0 && (
+                <button
+                  type="button"
+                  onClick={() => obs.remover(n.i)}
+                  aria-label={`Remover observação de ${nome(n.chave)}`}
+                  className="text-muted/60 transition-colors hover:text-cream"
+                >
+                  ×
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      <form
+        className="mt-4 flex flex-wrap gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const campo = e.currentTarget.elements.namedItem("texto") as HTMLInputElement;
+          const texto = campo.value.trim();
+          if (!texto || !valor) return;
+          obs.adicionar({ chave: valor, texto });
+          campo.value = "";
+        }}
+      >
+        <select
+          value={valor}
+          onChange={(e) => onAlvo(e.target.value)}
+          aria-label="Onde anotar"
+          className="rounded-full border border-line bg-ink-2/80 px-3 py-2 text-[0.8rem] text-cream"
+        >
+          {opcoes.map((o) => (
+            <option key={o.chave} value={o.chave}>
+              {o.nome}
+            </option>
+          ))}
+        </select>
+        <input
+          id={id}
+          name="texto"
+          maxLength={200}
+          placeholder="Feriado, chuva, campanha… (ou clique no gráfico)"
+          aria-label="Texto da observação"
+          className="min-w-0 flex-1 basis-56 rounded-full border border-line bg-ink-2/80 px-4 py-2 text-[0.85rem] text-cream placeholder:text-muted/60 focus:border-gold"
+        />
+        <button className="rounded-full border border-gold-dim/70 px-4 py-2 text-[0.8rem] text-gold-soft transition-colors hover:border-gold hover:bg-gold/10">
+          Anotar
+        </button>
+      </form>
+    </div>
+  );
+}
+
+/* ---------- filtros ---------- */
+
+/** Grupo de seleção múltipla. Nunca esvazia: o último item marcado não desmarca. */
+export function Filtro<T extends string | number>({
+  rotulo,
+  opcoes,
+  sel,
+  onSel,
+}: {
+  rotulo: string;
+  opcoes: { v: T; nome: string }[];
+  sel: T[];
+  onSel: (s: T[]) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-3" role="group" aria-label={rotulo}>
+      <span className="eyebrow">{rotulo}</span>
+      <div className="flex flex-wrap gap-1 rounded-full border border-line/70 p-1">
+        {opcoes.map((o) => {
+          const ativo = sel.includes(o.v);
+          return (
+            <button
+              key={o.v}
+              type="button"
+              aria-pressed={ativo}
+              onClick={() =>
+                onSel(
+                  ativo
+                    ? sel.length > 1
+                      ? sel.filter((s) => s !== o.v)
+                      : sel
+                    : opcoes.map((x) => x.v).filter((v) => v === o.v || sel.includes(v))
+                )
+              }
+              className={`rounded-full px-3.5 py-1.5 text-[0.78rem] transition-colors ${
+                ativo ? "bg-gold text-ink" : "text-muted hover:text-cream"
+              }`}
+            >
+              {o.nome}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** A linha de filtros: acima dos gráficos que ela recorta, nunca dentro de um cartão. */
+export function Filtros({ children, nota }: { children: ReactNode; nota?: string }) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-8 gap-y-3 pt-2">
+      {children}
+      {nota && <span className="text-[0.78rem] text-muted">{nota}</span>}
+    </div>
+  );
+}
+
+/** Tick do eixo que destaca os dias com observação. */
+export function TickDia(props: {
+  x?: number;
+  y?: number;
+  payload?: { value: number };
+  marcados?: Set<number>;
+}) {
+  const { x = 0, y = 0, payload, marcados } = props;
+  const dia = payload?.value;
+  const marcado = dia !== undefined && !!marcados?.has(dia);
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text
+        x={0}
+        y={0}
+        dy={13}
+        textAnchor="middle"
+        fontSize={12}
+        fill={marcado ? C.goldSoft : C.muted}
+      >
+        {dia}
+      </text>
+      {marcado && <circle cx={0} cy={21} r={2} fill={C.goldSoft} />}
+    </g>
   );
 }
 

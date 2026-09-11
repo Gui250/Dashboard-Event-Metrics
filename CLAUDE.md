@@ -21,8 +21,19 @@ Um caso novo é um `assert` a mais nesse arquivo — não crie suíte separada.
 
 ## Arquitetura
 
-Painel 100% client-side: sem API routes, sem backend, sem persistência. `app/page.tsx` é o
-único dono de estado (`useState` por seção) e as planilhas são lidas no navegador via SheetJS.
+Painel client-side: sem API routes, sem banco. `app/page.tsx` é o único dono do estado das
+planilhas (`useState` por seção), lidas no navegador via SheetJS. O único código de servidor é
+o login: `proxy.ts` barra toda rota sem cookie válido e `app/login/actions.ts` cria/apaga a
+sessão (`lib/sessao.ts`, HMAC com `SESSAO_SEGREDO`). Os usuários ficam na tabela `usuarios`
+do Supabase; o login chama a RPC `confere_login` (bcrypt no banco, só `service_role`) por
+`fetch` com `SUPABASE_SECRET_KEY` — sem `@supabase/supabase-js`. Schema em
+`supabase/migrations/`. Filtros
+vivem no estado de cada seção; observações digitadas no painel, no `localStorage`
+(`useObservacoes` em `components/ui.tsx`).
+
+**Clique em gráfico** — gráfico clicável vai dentro de `<Clicavel>`: ele impede o mousedown de
+focar o svg, senão o Recharts liga a navegação por teclado e o `activeLabel` do clique vira
+sempre o primeiro item.
 
 **Leitura de planilha (`lib/`)** — `sheet.ts` traz os helpers tolerantes (`norm` sem acento,
 `num` para texto pt-BR e erros `#DIV/0!`, `excelDate` para seriais). `vendas.ts`, `clientes.ts`

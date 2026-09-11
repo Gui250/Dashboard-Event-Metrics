@@ -12,31 +12,57 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { CLUBES, type ClientesData, type Clube } from "@/lib/clientes";
+import { CLUBES, type ClientesData, type Clube, diaDaSemana, filtrarDias } from "@/lib/clientes";
 import { TardeNoite } from "./TardeNoite";
 import {
   Anel,
   C,
+  Clicavel,
   CORES_CLUBE,
   dec,
   eixo,
+  Filtro,
+  Filtros,
   gridProps,
   int,
   Legenda,
+  notaDe,
+  Notas,
   Panel,
+  TickDia,
   Stat,
   Tip,
+  useObservacoes,
 } from "./ui";
 
 const NOME: Record<Clube, string> = { tarde: "Clube da tarde", noite: "Clube da noite" };
 const LEGENDA = CLUBES.map((c) => ({ nome: NOME[c], cor: CORES_CLUBE[c] }));
+const CAMPO_NOTA = "nota-clientes";
 
-export function SecaoClientes({ dados }: { dados: ClientesData }) {
+// Segunda primeiro, como no calendário de operação; o valor é o getUTCDay (0 = domingo).
+const SEMANA = [1, 2, 3, 4, 5, 6, 0];
+const NOME_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const DIAS_DO_MES = Array.from({ length: 31 }, (_, i) => ({ chave: String(i + 1), nome: `Dia ${i + 1}` }));
+
+export function SecaoClientes({ dados: bruto }: { dados: ClientesData }) {
+  const [semana, setSemana] = useState(SEMANA);
+  const dados = useMemo(() => filtrarDias(bruto, semana), [bruto, semana]);
+  const temSemana = bruto.meses.some((m) => diaDaSemana(m.nome, 1) !== null);
+
   const [mesIdx, setMesIdx] = useState(dados.meses.length - 1);
   const mes = dados.meses[Math.min(mesIdx, dados.meses.length - 1)];
   const meta = dados.meta;
 
-
+  const obs = useObservacoes(`clientes:${mes.nome}`);
+  const [alvo, setAlvo] = useState("");
+  const planilha = mes.observacoes.map((o) => ({ chave: String(o.dia), texto: o.texto }));
+  const notas = [...planilha, ...obs.itens];
+  const diasComNota = new Set(notas.map((n) => Number(n.chave)));
+  const anotar = (l: string | number | undefined) => {
+    if (l === undefined) return;
+    setAlvo(String(l));
+    document.getElementById(CAMPO_NOTA)?.focus();
+  };
 
   const acimaDaMeta = (clube: Clube) => {
     const vals = dados.meses.flatMap((m) =>
@@ -61,6 +87,17 @@ export function SecaoClientes({ dados }: { dados: ClientesData }) {
 
   return (
     <div className="space-y-5">
+      {temSemana && (
+        <Filtros nota={semana.length < 7 ? "Médias e dias na meta recalculados só com os dias marcados." : undefined}>
+          <Filtro
+            rotulo="Dias da semana"
+            opcoes={SEMANA.map((w) => ({ v: w, nome: NOME_SEMANA[w] }))}
+            sel={semana}
+            onSel={setSemana}
+          />
+        </Filtros>
+      )}
+
       <div className="grid gap-5 lg:grid-cols-[1.15fr_1fr]">
         <Panel
           titulo="Média realizada frente à meta"
@@ -129,36 +166,66 @@ export function SecaoClientes({ dados }: { dados: ClientesData }) {
           </div>
         }
       >
-        <ResponsiveContainer width="100%" height={320}>
-          <BarChart data={mes.dias} margin={{ top: 8, right: 12, left: 4, bottom: 4 }} barGap={2}>
-            <CartesianGrid {...gridProps} />
-            <XAxis dataKey="dia" {...eixo} interval="preserveStartEnd" minTickGap={6} />
-            <YAxis {...eixo} width={44} />
-            <Tooltip
-              cursor={{ fill: "rgba(198,150,48,0.06)" }}
-              content={<Tip fmt={int} titulo={(l) => `Dia ${l} · ${mes.nome.toLowerCase()}`} />}
-            />
-            <ReferenceLine y={meta} stroke={C.cream} strokeDasharray="4 6" strokeOpacity={0.55}>
-              <Label value={`meta ${meta}`} position="insideTopRight" fill={C.muted} fontSize={11} />
-            </ReferenceLine>
-            {CLUBES.map((c) => (
-              <Bar
-                key={c}
-                dataKey={c}
-                name={NOME[c]}
-                fill={CORES_CLUBE[c]}
-                radius={[5, 5, 0, 0]}
-                maxBarSize={16}
+        <Clicavel>
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart
+              data={mes.dias}
+              margin={{ top: 8, right: 12, left: 4, bottom: 12 }}
+              barGap={2}
+              onClick={(e) => anotar(e.activeLabel)}
+            >
+              <CartesianGrid {...gridProps} />
+              <XAxis
+                dataKey="dia"
+                {...eixo}
+                interval="preserveStartEnd"
+                minTickGap={6}
+                tick={<TickDia marcados={diasComNota} />}
               />
-            ))}
-          </BarChart>
-        </ResponsiveContainer>
+              <YAxis {...eixo} width={44} />
+              <Tooltip
+                cursor={{ fill: "rgba(198,150,48,0.06)" }}
+                content={
+                  <Tip
+                    fmt={int}
+                    titulo={(l) => {
+                      const w = diaDaSemana(mes.nome, Number(l));
+                      return `${w === null ? "Dia" : NOME_SEMANA[w]} ${l} · ${mes.nome.toLowerCase()}`;
+                    }}
+                    nota={(l) => notaDe(notas, l)}
+                  />
+                }
+              />
+              <ReferenceLine y={meta} stroke={C.cream} strokeDasharray="4 6" strokeOpacity={0.55}>
+                <Label value={`meta ${meta}`} position="insideTopRight" fill={C.muted} fontSize={11} />
+              </ReferenceLine>
+              {CLUBES.map((c) => (
+                <Bar
+                  key={c}
+                  dataKey={c}
+                  name={NOME[c]}
+                  fill={CORES_CLUBE[c]}
+                  radius={[5, 5, 0, 0]}
+                  maxBarSize={16}
+                />
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
+        </Clicavel>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <Legenda itens={LEGENDA} />
           <p className="text-[0.8rem] text-muted">
             Média do mês — tarde {dec(mes.media.tarde)} · noite {dec(mes.media.noite)}
           </p>
         </div>
+        <Notas
+          id={CAMPO_NOTA}
+          planilha={planilha}
+          obs={obs}
+          opcoes={DIAS_DO_MES}
+          alvo={alvo}
+          onAlvo={setAlvo}
+        />
       </Panel>
 
       <TardeNoite dados={dados} />

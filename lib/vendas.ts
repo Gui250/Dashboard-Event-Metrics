@@ -25,6 +25,8 @@ export type Periodo = {
   clientes: PorAno;
   faturamento: PorAno;
   ticket: PorAno;
+  /** Feriado, evento ou nota que explique o período. */
+  observacao: string | null;
 };
 
 export type VendasData = {
@@ -108,6 +110,9 @@ function lePeriodo(grid: Grid, nomeAba: string): Periodo | null {
   }
   ticket = derivado;
 
+  const obs = findCell(grid, "OBSERVACAO");
+  const observacao = obs ? String(grid[obs.r]?.[obs.c + 1] ?? "").trim() || null : null;
+
   const nome = norm(nomeAba);
   const semana = nome.match(/SEMANA\s*(\d+)/);
   return {
@@ -117,6 +122,7 @@ function lePeriodo(grid: Grid, nomeAba: string): Periodo | null {
     clientes: clientes ?? { 2024: null, 2025: null, 2026: null },
     faturamento: faturamento ?? { 2024: null, 2025: null, 2026: null },
     ticket,
+    observacao,
   };
 }
 
@@ -171,7 +177,10 @@ export function templateVendas(): XLSX.WorkBook {
       [null, null, null, null, "FATURAMENTO"],
       [null, null, null, null, "TICKET MÉDIO"],
       [],
+      [null, null, null, null, "OBSERVAÇÃO", null],
+      [],
       [null, null, null, null, "Preencha 2024, 2025 e 2026. As variações são calculadas pelo painel."],
+      [null, null, null, null, "Em OBSERVAÇÃO (célula ao lado), anote feriados ou eventos do período."],
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws["!cols"] = [{ wch: 4 }, { wch: 14 }, { wch: 14 }, { wch: 3 }, { wch: 18 },

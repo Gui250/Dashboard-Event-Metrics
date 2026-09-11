@@ -10,6 +10,7 @@ import { SecaoVendas } from "@/components/SecaoVendas";
 import { type ClientesData, parseClientes, templateClientes } from "@/lib/clientes";
 import { type EventoData, parseEvento, templateEvento } from "@/lib/evento";
 import { parseVendas, templateVendas, type VendasData } from "@/lib/vendas";
+import { sair } from "./login/actions";
 
 type Aba = "vendas" | "clientes" | "evento";
 
@@ -75,6 +76,11 @@ export default function Painel() {
           <p className="mt-1.5 text-[0.85rem] text-muted">
             {vendas ? vendas.mes.toLowerCase() : "vendas e fluxo de clientes"}
           </p>
+          <form action={sair} className="mt-3">
+            <button className="text-[0.78rem] tracking-[0.14em] text-muted uppercase transition-colors hover:text-cream">
+              Sair
+            </button>
+          </form>
         </div>
       </header>
 

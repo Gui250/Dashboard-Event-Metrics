@@ -6,8 +6,9 @@ import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import * as XLSX from "xlsx";
 import { parseVendas, templateVendas, variacao } from "../lib/vendas.ts";
-import { parseClientes, templateClientes } from "../lib/clientes.ts";
-import { parseEvento, resumo, templateEvento } from "../lib/evento.ts";
+import { diaDaSemana, filtrarDias, parseClientes, templateClientes } from "../lib/clientes.ts";
+import { filtrarEvento, parseEvento, resumo, templateEvento } from "../lib/evento.ts";
+import { assinar, verificar } from "../lib/sessao.ts";
 
 const buf = (p: string) => {
   const b = readFileSync(p);
@@ -61,11 +62,31 @@ const t = templateClientes(2026);
 const ws = t.Sheets["MAIO 2026"];
 XLSX.utils.sheet_add_aoa(ws, [[1, 80, 1, 60]], { origin: "B4" });
 XLSX.utils.sheet_add_aoa(ws, [[2, 120, 2, 40]], { origin: "B5" });
+XLSX.utils.sheet_add_aoa(ws, [[2, "Feriado municipal"]], { origin: "G4" });
 const lido = parseClientes(wbBuf(t));
 assert.equal(lido.meses.length, 1);
 assert.equal(lido.meses[0].media.tarde, 100);
 assert.equal(lido.meses[0].media.noite, 50);
+assert.deepEqual(lido.meses[0].observacoes, [{ dia: 2, texto: "Feriado municipal" }]);
 console.log("template round-trip ok");
+
+// --- Observação de vendas, ida e volta -------------------------------------
+const tv = templateVendas();
+const wsv = tv.Sheets["SEMANA 1"];
+XLSX.utils.sheet_add_aoa(wsv, [["TOTAL CLIENTES", 10, 20, null, 30]], { origin: "E8" });
+XLSX.utils.sheet_add_aoa(wsv, [["FATURAMENTO", 100, 200, null, 300]], { origin: "E9" });
+XLSX.utils.sheet_add_aoa(wsv, [["OBSERVAÇÃO", "Carnaval"]], { origin: "E12" });
+const lidoV = parseVendas(wbBuf(tv));
+assert.equal(lidoV.periodos[0].observacao, "Carnaval");
+assert.equal(lidoV.periodos[0].ticket[2026], 10);
+// planilhas sem o bloco continuam válidas
+assert.equal(v.periodos[0].observacao, null);
+assert.deepEqual(c.meses[0].observacoes, []);
+// a ficha do evento aceita a mesma nota
+const fichaComNota = templateEvento(2026);
+XLSX.utils.sheet_add_aoa(fichaComNota.Sheets["ROI"], [["Véspera de feriado"]], { origin: "B8" });
+assert.equal(parseEvento(wbBuf(fichaComNota)).observacoes, "Véspera de feriado");
+console.log("observações ok");
 
 // --- Evento, planilha real -------------------------------------------------
 const e = parseEvento(buf(`${home}/Downloads/GESTÃO DE VENDAS 50 ANOS FAZENDINHA.xlsx`));
@@ -101,12 +122,41 @@ assert.equal(resumo(vazio).ticket, null);
 
 const te = templateEvento(2026);
 XLSX.utils.sheet_add_aoa(te.Sheets["ACOMPANHAMENTO"], [[2, 1, 0, 3]], { origin: "B5" });
-XLSX.utils.sheet_add_aoa(te.Sheets["ROI"], [[7000]], { origin: "B15" });
+XLSX.utils.sheet_add_aoa(te.Sheets["ROI"], [[7000]], { origin: "B16" });
 const lidoE = parseEvento(wbBuf(te));
 const rt = resumo(lidoE);
 assert.equal(rt.pax, 6);
 assert.equal(rt.faturamento, 3600); // 6 pax x R$ 600 do 1º lote
 assert.equal(rt.investimento, 7000);
 console.log("template evento round-trip ok");
+
+// --- Filtros ---------------------------------------------------------------
+assert.equal(diaDaSemana("MAIO 2026", 1), 5); // 1º de maio de 2026 é sexta
+assert.equal(diaDaSemana("MARÇO 2026", 1), 0);
+assert.equal(diaDaSemana("PLANILHA", 1), null);
+// semana inteira não muda nada; fim de semana recalcula a média só com sáb/dom
+assert.deepEqual(filtrarDias(c, [0, 1, 2, 3, 4, 5, 6]).mediaGeral, c.mediaGeral);
+const fds = filtrarDias(c, [0, 6]);
+assert.ok(fds.meses[0].dias.every((d) => [0, 6].includes(diaDaSemana("MAIO 2026", d.dia)!)));
+const tardeFds = fds.meses[0].dias.map((d) => d.tarde).filter((x): x is number => x !== null);
+assert.equal(fds.meses[0].media.tarde, tardeFds.reduce((a, b) => a + b, 0) / tardeFds.length);
+assert.equal(fds.meses.length, c.meses.length);
+// evento: canais fora do filtro zeram, lotes fora saem
+const soSympla = resumo(filtrarEvento(e, e.lotes.map((l) => l.label), ["sympla"]));
+assert.deepEqual(soSympla.canais, { tarde: 0, noite: 0, sympla: 11, whatsapp: 0 });
+assert.equal(resumo(filtrarEvento(e, ["1º LOTE"], ["tarde", "noite", "sympla", "whatsapp"])).pax, 22);
+assert.equal(resumo(e).pax, 46); // o original fica intacto
+console.log("filtros ok");
+
+// --- Sessão ----------------------------------------------------------------
+const segredo = "x".repeat(32);
+const token = assinar("ana", segredo);
+assert.equal(verificar(token, segredo), "ana");
+assert.equal(verificar(token, "y".repeat(32)), null); // outro segredo
+assert.equal(verificar(token.replace(/.$/, (ch) => (ch === "A" ? "B" : "A")), segredo), null); // assinatura adulterada
+assert.equal(verificar(assinar("ana", segredo, 0), segredo), null); // vencido
+assert.equal(verificar(undefined, segredo), null);
+assert.equal(verificar(token, undefined), null);
+console.log("sessão ok");
 
 console.log("\ntodos os checks passaram");

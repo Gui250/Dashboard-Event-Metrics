@@ -117,7 +117,11 @@ export function TardeNoite({ dados }: { dados: ClientesData }) {
           <p className="mt-5 text-[0.85rem] text-muted">
             {vantagem === null
               ? "Sem meses com os dois clubes preenchidos."
-              : `O clube da tarde recebe, em média, ${dec(vantagem)} clientes a mais por dia. Nenhum dos dois alcançou a meta de ${int(meta)} em nenhum mês.`}
+              : `O clube da tarde recebe, em média, ${dec(vantagem)} clientes a mais por dia. ${
+                  linhas.some((l) => (l.tarde ?? 0) >= meta || (l.noite ?? 0) >= meta)
+                    ? `Há meses com média na meta de ${int(meta)}.`
+                    : `Nenhum dos dois alcançou a meta de ${int(meta)} em nenhum mês.`
+                }`}
           </p>
         </>
       )}

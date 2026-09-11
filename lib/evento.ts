@@ -43,6 +43,8 @@ export type EventoData = {
   atracao: string | null;
   dataEvento: string | null;
   meta: { publico: number; ticket: number | null };
+  /** Feriado, evento concorrente ou nota que explique os números. */
+  observacoes: string | null;
   lotes: Lote[];
   despesas: Despesa[];
 };
@@ -82,6 +84,7 @@ function leFicha(grid: Grid): Omit<EventoData, "lotes"> | null {
     evento: texto(aoLado(grid, "EVENTO")) ?? "Evento",
     atracao: texto(aoLado(grid, "ATRACAO PRINCIPAL")),
     dataEvento: excelDate(aoLado(grid, "DATA DO EVENTO")),
+    observacoes: texto(aoLado(grid, "OBSERVACOES")),
     meta: {
       publico: num(aoLado(grid, "PUBLICO PAGANTE")) ?? 0,
       ticket: num(aoLado(grid, "META TICKET MEDIO")),
@@ -238,6 +241,23 @@ export function resumo(d: EventoData): Resumo {
   };
 }
 
+/** Recorte por lote e canal: lotes fora do filtro saem, canais fora viram zero. */
+export function filtrarEvento(d: EventoData, lotes: string[], canais: Canal[]): EventoData {
+  return {
+    ...d,
+    lotes: d.lotes
+      .filter((l) => lotes.includes(l.label))
+      .map((l) => ({
+        ...l,
+        dias: l.dias.map((dia) => {
+          const x = { ...dia };
+          for (const c of CANAIS) if (!canais.includes(c)) x[c] = 0;
+          return x;
+        }),
+      })),
+  };
+}
+
 /* ---------- template ---------- */
 
 const LOTES_TEMPLATE = [
@@ -261,6 +281,7 @@ export function templateEvento(ano = new Date().getFullYear()): XLSX.WorkBook {
     ["ATRAÇÃO PRINCIPAL", null],
     ["DATA DO EVENTO", null],
     ["META TICKET MÉDIO", null],
+    ["OBSERVAÇÕES", null],
     [],
     ["BALANÇO"],
     ["REFERENCIA", "META"],
